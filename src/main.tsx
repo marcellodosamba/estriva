@@ -1,11 +1,18 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { registerSW } from 'virtual:pwa-register'
 import './index.css'
 import App from './App.tsx'
 
-if (import.meta.env.PROD) {
-  registerSW({
+declare const __VITE_PWA_REGISTER__: ((options?: {
+  immediate?: boolean;
+  onNeedRefresh?: () => void;
+  onOfflineReady?: () => void;
+  onRegistered?: (registration: ServiceWorkerRegistration | undefined) => void;
+  onRegisterError?: (error: Error) => void;
+}) => (reloadPage: () => void) => void) | undefined;
+
+if (import.meta.env.PROD && typeof __VITE_PWA_REGISTER__ === 'function') {
+  __VITE_PWA_REGISTER__({
     onNeedRefresh() {
       if (confirm('Nova versão disponível. Atualizar?')) {
         window.location.reload()
