@@ -9,11 +9,6 @@ import {
   STORES,
   type StoreName,
   type Project,
-  type Location,
-  type Element,
-  type Occurrence,
-  type Observation,
-  type Photo,
   type BackupData,
   emptyRecords,
   requiredText,
@@ -21,16 +16,10 @@ import {
   newId,
   hashBlob,
   validateProject,
-  validateLocation,
-  validateElement,
-  validateOccurrence,
-  validateObservation,
 } from './schema';
 
 type IDBDatabase = globalThis.IDBDatabase;
 type IDBTransaction = globalThis.IDBTransaction;
-type IDBObjectStore = globalThis.IDBObjectStore;
-type IDBRequest = globalThis.IDBRequest;
 
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {

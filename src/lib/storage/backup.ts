@@ -3,7 +3,8 @@
  * Migrado de fontes-legadas/engenharia-aberta-g1-tablet/core/backup.js
  */
 
-import { STORES, type BackupData, type BackupFile, type PhotoInput, requiredText, assertIso, hashBlob, newId } from './schema';
+import type { BackupData, BackupFile, PhotoInput, Photo, Project, Location, Element, Occurrence, Observation } from './schema';
+import { requiredText, assertIso, hashBlob } from './schema';
 
 function bytesToBase64(bytes: Uint8Array): string {
   let parts: string[] = [];
@@ -32,14 +33,6 @@ function str(value: unknown, label: string, max = 10000): string {
   return requiredText(value, label, max);
 }
 
-function eachArray<T>(value: unknown, label: string, validator: (x: unknown, i: number) => T): T[] {
-  if (!Array.isArray(value)) throw new Error(`Conjunto ${label} ausente`);
-  return value.map((x, i) => {
-    recordObject(x, `${label}[${i}]`);
-    return validator(x, i);
-  });
-}
-
 function uniqueness(rows: { id: string }[], name: string): Set<string> {
   const found = new Set<string>();
   for (const row of rows) {
@@ -51,8 +44,13 @@ function uniqueness(rows: { id: string }[], name: string): Set<string> {
 }
 
 function reference(row: Record<string, unknown>, field: string, parents: Set<string>): void {
-  const id = str(row[field], field, 200);
+  const id = str(row[field] as string, field, 200);
   if (!parents.has(id)) throw new Error(`Referência órfã ou vínculo inválido: ${field}`);
+}
+
+function parseArray<T>(src: unknown, label: string): T[] {
+  if (!Array.isArray(src)) throw new Error(`Conjunto ${label} ausente`);
+  return src as T[];
 }
 
 export async function prepareRestore(input: BackupFile): Promise<BackupData> {
@@ -63,37 +61,51 @@ export async function prepareRestore(input: BackupFile): Promise<BackupData> {
   recordObject(input.data, 'Dados do backup');
 
   const src = input.data;
-  const groups = Object.fromEntries(STORES.map(name => [name, eachArray(src[name], name, x => x)])) as BackupData;
-  const ids = Object.fromEntries(STORES.map(name => [name, uniqueness(groups[name as keyof BackupData] as { id: string }[], name)])) as Record<string, Set<string>>;
 
-  for (const p of groups.projects) {
+  const projects = parseArray<Project>(src.projects, 'projects');
+  const locations = parseArray<Location>(src.locations, 'locations');
+  const elements = parseArray<Element>(src.elements, 'elements');
+  const occurrences = parseArray<Occurrence>(src.occurrences, 'occurrences');
+  const observations = parseArray<Observation>(src.observations, 'observations');
+  const photosInput = parseArray<PhotoInput>(src.photos, 'photos');
+
+  const ids = {
+    projects: uniqueness(projects, 'projects'),
+    locations: uniqueness(locations, 'locations'),
+    elements: uniqueness(elements, 'elements'),
+    occurrences: uniqueness(occurrences, 'occurrences'),
+    observations: uniqueness(observations, 'observations'),
+    photos: uniqueness(photosInput, 'photos'),
+  };
+
+  for (const p of projects) {
     str(p.name, 'Nome de projeto');
     assertIso(p.createdAt, 'Data do projeto');
     assertIso(p.updatedAt, 'Atualização do projeto');
   }
-  for (const l of groups.locations) {
+  for (const l of locations) {
     str(l.name, 'Local');
     reference(l, 'projectId', ids.projects);
   }
-  for (const e of groups.elements) {
+  for (const e of elements) {
     str(e.label, 'Elemento');
     str(e.type, 'Tipo');
     reference(e, 'locationId', ids.locations);
   }
-  for (const o of groups.occurrences) {
+  for (const o of occurrences) {
     str(o.category, 'Categoria');
     reference(o, 'elementId', ids.elements);
     assertIso(o.createdAt, 'Data da ocorrência');
   }
-  for (const n of groups.observations) {
+  for (const n of observations) {
     str(n.description, 'Observação');
-    reference(n, 'occurrenceId', ids.occurrences);
+    reference(n, 'occurrenceId', ids.observations);
     assertIso(n.observedAt, 'Data observada');
     assertIso(n.createdAt, 'Data do registro');
   }
 
-  const photos: PhotoInput[] = [];
-  for (const p of groups.photos) {
+  const photos: Photo[] = [];
+  for (const p of photosInput) {
     reference(p, 'observationId', ids.observations);
     const mime = str(p.mimeType, 'MIME');
     if (!mime.startsWith('image/')) throw new Error('Tipo de fotografia não permitido');
@@ -115,16 +127,17 @@ export async function prepareRestore(input: BackupFile): Promise<BackupData> {
       mimeType: mime,
       sizeBytes: content.length,
       sha256: hex,
+      originalBlob: blob,
       createdAt: p.createdAt,
     });
   }
 
   return {
-    projects: groups.projects,
-    locations: groups.locations,
-    elements: groups.elements,
-    occurrences: groups.occurrences,
-    observations: groups.observations,
+    projects,
+    locations,
+    elements,
+    occurrences,
+    observations,
     photos,
   };
 }

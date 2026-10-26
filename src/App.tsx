@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { readAll, createProject, addOccurrenceWithPhoto, exportBackup, importBackup, clearAllData } from './lib/storage'
+import { readAll, createProject, exportBackup, importBackup } from './lib/storage'
 import type { Project, BackupFile } from './lib/storage'
 
 function App() {
@@ -25,7 +25,7 @@ function App() {
 
   const handleCreateProject = async (name: string, description: string, location: string, norma: 'ABNT-NBR-6118' | 'EUROCODE-2') => {
     try {
-      const id = await createProject({ name, description, location, norma })
+      await createProject({ name, description, location, norma })
       await loadProjects()
       setActiveView('list')
     } catch (error) {

@@ -18,12 +18,14 @@ export interface Project {
   norma: 'ABNT-NBR-6118' | 'EUROCODE-2';
   createdAt: string; // ISO 8601
   updatedAt: string;
+  [key: string]: unknown;
 }
 
 export interface Location {
   id: string;
   projectId: string;
   name: string;
+  [key: string]: unknown;
 }
 
 export interface Element {
@@ -31,6 +33,7 @@ export interface Element {
   locationId: string;
   type: string;
   label: string;
+  [key: string]: unknown;
 }
 
 export interface Occurrence {
@@ -38,6 +41,7 @@ export interface Occurrence {
   elementId: string;
   category: 'FISSURA' | 'INFILTRACAO' | 'CORROSAO' | 'OUTRO';
   createdAt: string;
+  [key: string]: unknown;
 }
 
 export interface Observation {
@@ -46,6 +50,7 @@ export interface Observation {
   observedAt: string; // ISO 8601
   description: string;
   createdAt: string;
+  [key: string]: unknown;
 }
 
 export interface Photo {
@@ -57,9 +62,11 @@ export interface Photo {
   sha256: string;
   originalBlob?: Blob; // Apenas em memória, não persistido
   createdAt: string;
+  [key: string]: unknown;
 }
 
 export interface PhotoInput {
+  id: string;
   observationId: string;
   originalFilename: string;
   mimeType: string;
@@ -67,6 +74,7 @@ export interface PhotoInput {
   sha256: string;
   contentBase64: string;
   createdAt: string;
+  [key: string]: unknown;
 }
 
 export interface BackupData {
@@ -75,7 +83,7 @@ export interface BackupData {
   elements: Element[];
   occurrences: Occurrence[];
   observations: Observation[];
-  photos: PhotoInput[];
+  photos: Photo[];
 }
 
 export interface BackupFile {
@@ -136,7 +144,7 @@ export function validateProject(input: Partial<Project>): Project {
   };
 }
 
-export function validateLocation(input: Partial<Location>, projectIds: Set<string>): Location {
+export function validateLocation(input: Partial<Location>, _projectIds: Set<string>): Location {
   return {
     id: input.id ?? newId(),
     projectId: requiredText(input.projectId, 'Project ID'),
@@ -144,7 +152,7 @@ export function validateLocation(input: Partial<Location>, projectIds: Set<strin
   };
 }
 
-export function validateElement(input: Partial<Element>, locationIds: Set<string>): Element {
+export function validateElement(input: Partial<Element>, _locationIds: Set<string>): Element {
   return {
     id: input.id ?? newId(),
     locationId: requiredText(input.locationId, 'Location ID'),
@@ -153,7 +161,7 @@ export function validateElement(input: Partial<Element>, locationIds: Set<string
   };
 }
 
-export function validateOccurrence(input: Partial<Occurrence>, elementIds: Set<string>): Occurrence {
+export function validateOccurrence(input: Partial<Occurrence>, _elementIds: Set<string>): Occurrence {
   return {
     id: input.id ?? newId(),
     elementId: requiredText(input.elementId, 'Element ID'),
@@ -162,7 +170,7 @@ export function validateOccurrence(input: Partial<Occurrence>, elementIds: Set<s
   };
 }
 
-export function validateObservation(input: Partial<Observation>, occurrenceIds: Set<string>): Observation {
+export function validateObservation(input: Partial<Observation>, _occurrenceIds: Set<string>): Observation {
   return {
     id: input.id ?? newId(),
     occurrenceId: requiredText(input.occurrenceId, 'Occurrence ID'),
